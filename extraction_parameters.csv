@@ -1,0 +1,5 @@
+orient;pix_per_cell;cell_per_block;hog_channel;spatial_size;hist_bins;spatial_feat;hist_feat;hog_feat;y_start_stop;accuracy;time_to_train;time_to_predict
+9;8;2;ALL;(16, 16);16; True; True; True; [360, 720];0.993;0;0
+12;8;2;0;(8, 8);16; True; True; True; [360, 720];0.993;0;0
+9;8;2;1;(16, 16);16; True; True; True; [360, 720];0.993;0;0
+9;8;2;ALL;(16, 16);16; True; True; True; [360, 720];0.993;0;0
