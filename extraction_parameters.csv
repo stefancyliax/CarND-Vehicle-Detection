@@ -1,5 +1,12 @@
-orient;pix_per_cell;cell_per_block;hog_channel;spatial_size;hist_bins;spatial_feat;hist_feat;hog_feat;y_start_stop;accuracy;time_to_train;time_to_predict
-9;8;2;ALL;(16, 16);16; True; True; True; [360, 720];0.993;0;0
-12;8;2;0;(8, 8);16; True; True; True; [360, 720];0.993;0;0
-9;8;2;1;(16, 16);16; True; True; True; [360, 720];0.993;0;0
-9;8;2;ALL;(16, 16);16; True; True; True; [360, 720];0.993;0;0
+kernel,color_space,orient,pix_per_cell,cell_per_block,hog_channel,spatial_size,hist_bins,spatial_feat,hist_feat,hog_feat
+linear,YCrCb,9,8,2,-1,16,16,TRUE,TRUE,TRUE
+linear,YCrCb,12,8,2,0,8,16,TRUE,TRUE,TRUE
+rbf,YCrCb,9,8,2,-1,16,16,TRUE,TRUE,TRUE
+poly,YCrCb,9,8,2,-1,16,16,TRUE,TRUE,TRUE
+sigmoid,YCrCb,9,8,2,-1,16,16,TRUE,TRUE,TRUE
+linear,RGB,9,8,2,-1,16,16,TRUE,TRUE,TRUE
+linear,YCrCb,12,8,2,-1,16,16,TRUE,TRUE,TRUE
+linear,YCrCb,9,8,2,-1,32,16,TRUE,TRUE,TRUE
+linear,YCrCb,9,8,2,-1,16,32,TRUE,TRUE,TRUE
+linear,YCrCb,9,8,2,-1,16,16,FALSE,TRUE,TRUE
+linear,YCrCb,9,8,2,-1,16,16,TRUE,FALSE,FALSE

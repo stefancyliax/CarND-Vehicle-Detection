@@ -1,0 +1,12 @@
+kernel;color_space;orient;pix_per_cell;cell_per_block;hog_channel;spatial_size;hist_bins;spatial_feat;hist_feat;hog_feat;time_to_extract_features;features_vector_length;training_time;accuracy;prediction_time
+linear;YCrCb;9;8;2;-1;16;16;True;True;True;9.1;6108.0;0.47;0.995;0.000551391
+linear;YCrCb;12;8;2;0;8;16;True;True;True;3.71;2592.0;0.18;0.99;0.000200486
+rbf;YCrCb;9;8;2;-1;16;16;True;True;True;9.07;6108.0;1.09;0.995;0.001353407
+poly;YCrCb;9;8;2;-1;16;16;True;True;True;9.09;6108.0;2.25;0.81;0.002706718
+sigmoid;YCrCb;9;8;2;-1;16;16;True;True;True;9.09;6108.0;0.55;1.0;0.000701809
+linear;RGB;9;8;2;-1;16;16;True;True;True;9.09;6108.0;0.57;0.985;0.000651646
+linear;YCrCb;12;8;2;-1;16;16;True;True;True;9.25;7872.0;0.69;1.0;0.00085218
+linear;YCrCb;9;8;2;-1;32;16;True;True;True;9.14;8412.0;0.63;1.0;0.000751829
+linear;YCrCb;9;8;2;-1;16;32;True;True;True;9.09;6156.0;0.47;0.995;0.000551319
+linear;YCrCb;9;8;2;-1;16;16;False;True;True;9.09;5340.0;0.41;0.99;0.000451255
+linear;YCrCb;9;8;2;-1;16;16;True;False;False;0.35;768.0;0.06;0.995;0.0
