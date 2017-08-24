@@ -171,7 +171,7 @@ print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
 # Check the prediction time for a single sample
 t = time.time()
 
-image = mpimg.imread('./test_images/bbox-example-image.jpg')
+image = mpimg.imread('./test_images/test1.jpg')
 draw_image = np.copy(image)
 
 # Uncomment the following line if you extracted training
