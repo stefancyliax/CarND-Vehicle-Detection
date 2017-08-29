@@ -18,7 +18,7 @@ Video with debugging output: (Youtube link)
 ## Detailed explanation of the pipeline
 
 The project consists of two parts. The first is training a classifier on a provided dataset to classify between images of vehicles and "not-vehicles".
-The second is appling the classifier to find cars in the provided video and annotate them.
+The second is applying the classifier to find cars in the provided video and annotate them.
 
 
 ### Training of the classifier
@@ -40,7 +40,7 @@ To train the classifier the following steps were taken:
 4. Fitting of Support Vector Machine classifier
 
 #### 1. Feature extraction
-Each image is made of 12288 pixel (64x64x3), that could be used directly as features to train a classifier. Doing so would be quite expensive though. Instead we are extracting histogram, color and gradient features from the images. This enables us to work with a much smaller feature vector (in this case 2544) while not losing to much information.
+Each image is made of 12288 pixel (64x64x3), that could be used directly as features to train a classifier. Doing so would be quite expensive though. Instead we are extracting histogram, color and gradient features from the images. This enables us to work with a much smaller feature vector (in this case 2544) while not losing too much information.
 
 The gradient features are extracted using a technique called [Histogram of Oriented Gradients (HOG)](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.html). Basically HOG subsamples the image to a grid of e.g. 8x8 or 4x4 grids, with each only containing the most prominent gradient in that part of the image. It therefore extracts gradients in the image while dropping other information like color.
 
@@ -56,7 +56,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block, feature_vec=True
     return features
 ```
 
-Histogram features are extracted using [```numpy.histogram```](https://docs.scipy.org/doc/numpy/reference/generated/numpy.histogram.html). With histogram features extract the tonal distribution of the image while not beeing sensitive to aspects and orientations.
+Histogram features are extracted using [```numpy.histogram```](https://docs.scipy.org/doc/numpy/reference/generated/numpy.histogram.html). With histogram features extract the tonal distribution of the image while not being sensitive to aspects and orientations.
 
 ```python
 
@@ -129,11 +129,11 @@ def fit_PCA(X_train, X_test, y_train, y_test, n_components=150):
 
 #### 4. Fitting of Support Vector Machine classifier
 Lastly I fit the data to a [Support Vector Machine classifier](http://scikit-learn.org/stable/modules/svm.html) with a radial basis function kernel (_rbf_).
-Using the PCA approach I acceived a accuracy of **0.9975** while keeping the computation very efficient.
+Using the PCA approach I achieved a accuracy of **0.9975** while keeping the computation very efficient.
 
 ```python
 def fit_SVM(X_train, X_test, y_train, y_test, kernel='linear', C=1.0):
-    # Instanziate Support Vector Machine classifier
+    # Instantiate Support Vector Machine classifier
     svc = SVC(kernel=kernel, C=C, gamma=0.005)
     svc.fit(X_train, y_train)
 
@@ -145,27 +145,27 @@ def fit_SVM(X_train, X_test, y_train, y_test, kernel='linear', C=1.0):
 
 
 ### Parameter selection
-Since this project involves a lot of parameters, I decided to implement a automatic parameter testing.
+Since this project involves a lot of parameters, I decided to implement an automatic parameter testing.
 
-I created a spreadsheet with each row containing a parameter set I wanted to test. I saved the spreadsheet as ```.csv``` and used [pandas](http://pandas.pydata.org/) and a few lines of code to iterate though it row by row. For each row the script feed all parameters to feature extraction and fitting. I inserted different performance indicators like accuracy and predict time back into the spreadsheer again using pandas. This allowed for an large number of parameters to be tested over night. The spreadsheet containing all 50 parameter sets I tested [can be found in the repo](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/extraction_parameters.csv).
+I created a spreadsheet with each row containing a parameter set I wanted to test. I saved the spreadsheet as ```.csv``` and used [pandas](http://pandas.pydata.org/) and a few lines of code to iterate though it row by row. For each row the script feed all parameters to feature extraction and fitting. I inserted different performance indicators like accuracy and predict time back into the spreadsheet again using pandas. This allowed for an large number of parameters to be tested over night. The spreadsheet containing all 50 parameter sets I tested [can be found in the repo](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/extraction_parameters.csv).
 
 ```python
-# Note: shortend
+# Note: shortened
 parameter_file = "extraction_parameters.csv"
 para_pd = pd.read_table(parameter_file, sep=';')
 
 for index, para_row in para_pd.iterrows():
 
-    # Skip rows that are alredy calculated
+    # Skip rows that are already calculated
     if para_row['accuracy'] != 0:
         continue
 
     kernel = para_row['kernel']
     color_space = para_row['color_space']
-    # shortend!
+    # shortened!
 
-    car_features = extract_features_from_dataset(cars)  # shortend
-    notcar_features = extract_features_from_dataset(notcars)  # shortend
+    car_features = extract_features_from_dataset(cars)  # shortened
+    notcar_features = extract_features_from_dataset(notcars)  # shortened
 
     para_pd.loc[index, 'time_to_extract_features'] = time_extract
     para_pd.loc[index, 'time_to_extract_features_100'] = round(time_extract*100/(len(car_features)+len(notcar_features)),6)
@@ -195,7 +195,7 @@ In the end I settled for the following parameter set.
 |-------------|---------------|---------|-----------|------------|-------|----------|---------------------------------|
 | YCrCb       | 16,16,2,'ALL' | (16,16) | 16        | rbf, C=10  | n=150 | **0.9975**   | **0.0249s**                         |
 
-I was supprised to see the best performance with a HOG parameter ```pix_per_cell = 16``` because this results in a HOG grid of just 4x4. See example below. A more complex HOG feature extraction rather strangly proved to be worse performing and slower.
+I was suprised to see the best performance with a HOG parameter ```pix_per_cell = 16``` because this results in a HOG grid of just 4x4. See example below. A more complex HOG feature extraction was both slower and worse performing rather strangely.
 
 ![HOG16](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/Hog16.png)
 
@@ -212,9 +212,9 @@ The pipeline consists of the following steps.
 5. Annotate found vehicle in input image by drawing a bounding box.
 
 #### 1. Calculate HOG feature over entire image and subsample
-For the first step I adopted a code chunk from the lesson material. It applies a smart trick to the extraction of HOG features. Instead of adjusting the size of the sliding window and then rescaling the subsample back to 64x64 pixel to calculate HOG features, the function is resizing the entire image and calculating HOG features over the entire image. So instead of a 96x96 sliding window that we would have to rescale to 64x64 to calculate HOG features, we scale the entire imge down by a factor of 1.5 and subsample with a window size of 64x64.
+For the first step I adopted a code chunk from the lesson material. It applies a smart trick to the extraction of HOG features. Instead of adjusting the size of the sliding window and then rescaling the subsample back to 64x64 pixel to calculate HOG features, the function is resizing the entire image and calculating HOG features over the entire image. So instead of a 96x96 sliding window that we would have to rescale to 64x64 to calculate HOG features, we scale the entire image down by a factor of 1.5 and subsample with a window size of 64x64.
 
-Color and historam features are extracted from the same 64x64 window in this step.
+Color and histogram features are extracted from the same 64x64 window in this step.
 
 ```python
 def find_cars(img, ystart, ystop, scale, svc, pca, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins):
@@ -304,10 +304,15 @@ Finally the classifier I trained in part 1 is used to predict whether there is a
 ```
 The pipeline applies ```find_cars() ``` applies three times with scales values of 1, 1.5 and 2 to search the image in windows of 64x64, 96x96 and 128x128. The positive prediction are combined.
 
+![find1](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/find1.png)
+
+![find2](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/find2.png)
+
+![find3](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/find3.png)
 
 
 #### 4. False positive rejection
-Next I implemented a class that kept a history of the last 30 frames to only draw bounding boxes when the detection was viable over a few frames. This was done to rejected false positives in the video stream.
+Next I implemented a class that kept a history of the last 30 frames to only draw bounding boxes when the detection was viable over a few frames. This was done to reject false positives in the video stream.
 
 I implemented it using the concept of heatmap and thresholding. To smooth things out, the sum over the last 30 heatmaps is calculated and thresholded to 30.
 
@@ -388,10 +393,10 @@ def draw_labeled_bboxes(img, labels, color=(0,1,0)):
 
 
 # Discussion
-This was a interessting project were I could resort to lessons from the Udacity course [Intro to Machine Learning](https://www.udacity.com/course/intro-to-machine-learning--ud120) I did a while back. In the end the pipeline was able to reliably detect the vehicles in the project video and annotate them. The false positive rejection proved to be effective as well. One downside of the approach using computer vision and machine learning is that it rather computational expensive. The processing of the whole video took about 15 minutes which translates to 1.3 fps. Obivously way to slow for a real world application.
+This was a interessting project were I could resort to lessons from the Udacity course [Intro to Machine Learning](https://www.udacity.com/course/intro-to-machine-learning--ud120) I did a while back. In the end the pipeline was able to reliably detect the vehicles in the project video and annotate them. The false positive rejection proved to be effective as well. One downside of the approach using computer vision and machine learning is that it rather computationally expensive. The processing of the whole video took about 15 minutes which translates to 1.3 fps. Obviously way too slow for a real world application.
 
 #### Use class for every vehicle to do proper tracking on screen
-I am pretty happy with the machine learning part but the vehicle detection pipeline leaves room for improvement. One possible improvment is the use of a class to properly track every detected vehicle.
+I am pretty happy with the machine learning part but the vehicle detection pipeline leaves room for improvement. One possible improvement is the use of a class to properly track every detected vehicle.
 
 #### Use of NN or CNN
-It would be interessting to benchmark a NN as classifier against the Support Vector Machine, especially regarding computation speed. Also a benchmark againt a modern approch like Yolo or other object detection CNN would be very interessting.
+It would be interesting to benchmark a NN as classifier against the Support Vector Machine, especially regarding computation speed. Also a benchmark against a modern approach like Yolo or other object detection CNN would be very interesting.
