@@ -1,32 +1,37 @@
 # Udacity Project 5: Vehicle Detection
 [![Udacity - Self-Driving Car NanoDegree](https://s3.amazonaws.com/udacity-sdc/github/shield-carnd.svg)](http://www.udacity.com/drive)
 
-The goal of this project is to detect vehicles in a video recorded on a highway. Instead of using a modern deep learning approach like [Yolo](https://arxiv.org/abs/1512.00567), we were were given tools from classic computer vision like [HOG](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.html) and machine leaning like [Support Vector Machines](http://scikit-learn.org/stable/modules/svm.html).    
+The goal of this project is to detect vehicles in a video recorded on a highway. Instead of using a modern deep learning approach like [Yolo](https://arxiv.org/abs/1512.00567), we were were given tools from classic computer vision and machine leaning like [HOG](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.html)  and [Support Vector Machines](http://scikit-learn.org/stable/modules/svm.html).    
 
-In the end the model was able to reliably and precisely detect the vehicle in front of the car. This document describes my approach and implemented pipeline.
-
-## Approach
-
-The project consists of two parts. The first is training a classifier on a provided dataset to classify between images of vehicles and "not-vehicles". The second is using the classifier to find cars in the provided video and annotate them in the video.
+In the end the pipeline was able to reliably and precisely detect the vehicles in front of the car. This document describes my approach and implemented pipeline. The code can be found in the corresponding [Jupyter Notebook](https://github.com/stefancyliax/CarND-Vehicle-Detection/blob/master/P5_Vehicle_Detection.ipynb).
 
 Project video: (Youtube link)
 
 [![Project track](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/project_vid.gif)](https://youtu.be/-Tn7427VUVM)
+
 Video with debugging output: (Youtube link)
 
 [![Project track](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/debug_vid.gif)](https://youtu.be/dlsnkgHiDrg)
 
+
+
 ## Detailed explanation of the pipeline
-### Training of Machine Learning classifier
-For the training of the classifier a dataset of images were provided of both cars and "not-cars".
+
+The project consists of two parts. The first is training a classifier on a provided dataset to classify between images of vehicles and "not-vehicles".
+The second is appling the classifier to find cars in the provided video and annotate them.
+
+
+### Training of the classifier
+For the training of the classifier a dataset of images is provided of both cars and "not-cars".
 
 | Class      | Count  | Shape   |
 |------------|--------|---------|
 | Car        | 8792   | 64x64x3 |
 | Not-car    | 8968   | 64x64x3 |
 
-![dataset](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/dataset.png)
+Examples:
 
+![dataset](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/dataset.png)
 
 To train the classifier the following steps were taken:
 1. Feature extraction
@@ -34,29 +39,27 @@ To train the classifier the following steps were taken:
 3. Principal Component Analysis (PCA)
 4. Fitting of Support Vector Machine classifier
 
-##### 1. Feature extraction
-Every image consists of 64x6x3 = 12288 pixels that could used as features to train a classifier. This would be quite expensive though. Instead we are extracting histogram, color and gradient features from the image. This enables us to work with a much smaller feature vector (in this case 2544) while not losing to much information. This enables a effective use of an SVM classifier later.
+#### 1. Feature extraction
+Each image is made of 12288 pixel (64x64x3), that could be used directly as features to train a classifier. Doing so would be quite expensive though. Instead we are extracting histogram, color and gradient features from the images. This enables us to work with a much smaller feature vector (in this case 2544) while not losing to much information.
 
-The gradient features are extracted using [sklean.hog](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.html). Histogram of Oriented Gradients (HOG) subsamples the image to a grid of e.g. 8x8 or 4x4 grids, that each only contain the most prominent gradient in that part of the image. It therefore extracts gradients in the image while dropping all other information.
+The gradient features are extracted using a technique called [Histogram of Oriented Gradients (HOG)](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.html). Basically HOG subsamples the image to a grid of e.g. 8x8 or 4x4 grids, with each only containing the most prominent gradient in that part of the image. It therefore extracts gradients in the image while dropping other information like color.
 
 ![hog](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/Hog.png)
 
 ```python
-# Helper function to extract HOG features and optional visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block, feature_vec=True):
         features = hog(img, orientations=orient,
-                       pixels_per_cell=(pix_per_cell, pix_per_cell),
+                       pixel_per_cell=(pix_per_cell, pix_per_cell),
                        cells_per_block=(cell_per_block, cell_per_block),
                        transform_sqrt=True,
                        visualise=vis, feature_vector=feature_vec, block_norm='L2-Hys')
     return features
 ```
 
-For histogram features are extracted using [numpy.histogram](https://docs.scipy.org/doc/numpy/reference/generated/numpy.histogram.html). The histogram features extract the tonal distribution of the image.
-
+Histogram features are extracted using [```numpy.histogram```](https://docs.scipy.org/doc/numpy/reference/generated/numpy.histogram.html). With histogram features extract the tonal distribution of the image while not beeing sensitive to aspects and orientations.
 
 ```python
-# Helper function to compute color histogram features
+
 def color_hist(img, nbins=32):
     # Compute the histogram of the color channels separately
     channel1_hist = np.histogram(img[:, :, 0], bins=nbins)
@@ -67,25 +70,24 @@ def color_hist(img, nbins=32):
     return hist_features
 ```
 
-The color features are extracted by downscaling the image and taking the pixels as feature vector. In the downscaling process we reduce the number of pixel significantly but maintain the rough color information of the image.
+Color features are extracted by downscaling the image and taking the pixel as feature vector. In the downscaling process we reduce the number of pixel significantly but maintain the rough color information of the image.
 
-TODO: insert image
 ```python
-# Helper function to compute binned color features
 def bin_spatial(img, size=(32, 32)):
     # Resize image and flatten it
     features = cv2.resize(img, size).ravel()
     return features
 ```
 
-##### 2. Normalize and splitting into Train and Test set
-Next the features are normalized using [sklearn.preprocessing.StandardScaler](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html) and then split into a train and test set using [sklearn.model_selection.train_test_split](http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html)
-The normalizing is needed since the features vectors are numerically way bigger than other feature vectors, as seen in the image below. After the normalization, the feature vector is distributed equally.
+#### 2. Normalize and splitting into Train and Test set
+Next the features are normalized using [```sklearn.preprocessing.StandardScaler```](http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html)
+The normalizing is needed because the features vectors are numerically very different from each other, as seen in the image below. After the normalization, the feature vector is distributed equally.
 
 ![scaler](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/Scaler.png)
 
+After normalization the dataset is split into train and test set using [```sklearn.model_selection.train_test_split```](http://scikit-learn.org/stable/modules/generated/sklearn.model_selection.train_test_split.html).
+
 ```python
-# Helper function to create dataset and normalize the features
 def create_and_scale_trainset(car_features, notcar_features):
     X = np.vstack((car_features, notcar_features)).astype(np.float64)
     # Fit a per-column scaler
@@ -103,16 +105,15 @@ def create_and_scale_trainset(car_features, notcar_features):
     return X_scaler, X_train, X_test, y_train, y_test
 ```
 
-##### 3. Principal Component Analysis (PCA)
-Next PCA was applied using [_sklearn.decomposition.PCA_](http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html). Principal Component Analysis is a technique to reduce the number of dimensions of a feature vector while maintaining the information. PCA is able to [extract orthogonal components that explain a maximum amount of the variance](http://scikit-learn.org/stable/modules/decomposition.html#pca). Simply put, it allowed me to shrink the feature vector from 2544 to 150 with only a minor loss in accuracy. Because the prediction time is highly dependent on the number of features, I was now able to use a more expensive _rbf_ kernel  for the Support Vector Machine kernel.
+#### 3. Principal Component Analysis (PCA)
+Next PCA was applied using [```sklearn.decomposition.PCA```](http://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html). _Principal Component Analysis_ is a technique to reduce the number of dimensions of a feature vector while maintaining the information. PCA is able to [extract orthogonal components that explain a maximum amount of the variance](http://scikit-learn.org/stable/modules/decomposition.html#pca). Simply put, it allowed to shrink the feature vector from 2544 to 150 with only a minor loss in accuracy. Because the prediction time is highly dependent on the number of features, I was now able to use a more expensive _rbf_ kernel for the Support Vector Machine kernel.
 
 For the project, PCA allowed me to reduce the prediction time by a factor of ~10 while improving the accuracy by a factor of ~2.5.
-
 
 |                     | Classifier  | PCA  | Accuracy | Prediction time for 100 samples |
 |---------------------|-------------|------|----------|---------------------------------|
 | First parameter set | linear, C=1 | None | 0.9913   | 0.2896s                         |
-| Using PCA           | rbf, C=10  | n=150 | **0.9969**   | **0.0249s**                 |
+| Using PCA           | rbf, C=10  | n=150 | **0.9975**   | **0.0249s**                 |
 
 ```python
 def fit_PCA(X_train, X_test, y_train, y_test, n_components=150):
@@ -128,13 +129,12 @@ def fit_PCA(X_train, X_test, y_train, y_test, n_components=150):
 
 #### 4. Fitting of Support Vector Machine classifier
 Lastly I fit the data to a [Support Vector Machine classifier](http://scikit-learn.org/stable/modules/svm.html) with a radial basis function kernel (_rbf_).
-Using the PCA approach I acceived a accuracy of **0.9969** while keeping the computation very efficient.
+Using the PCA approach I acceived a accuracy of **0.9975** while keeping the computation very efficient.
 
 ```python
 def fit_SVM(X_train, X_test, y_train, y_test, kernel='linear', C=1.0):
     # Instanziate Support Vector Machine classifier
     svc = SVC(kernel=kernel, C=C, gamma=0.005)
-
     svc.fit(X_train, y_train)
 
     # Log accuracy on test set
@@ -145,38 +145,76 @@ def fit_SVM(X_train, X_test, y_train, y_test, kernel='linear', C=1.0):
 
 
 ### Parameter selection
-Since this project involves a lot of parameters, I decided to implement a automatic parameter testing. I created a spreadsheet with each row containing a parameter set I want to test. I exported the spreadsheet as ```.csv``` so I could use [pandas](http://pandas.pydata.org/) to read in line by line and do feature extraction and fitting using the read in parameters. In the end I inserted differnt performance indicators like accuracy and predict time back into the spreadsheer using pandas. This allowed for an large number of parameters to be tested over night. The spreadsheet containing all 50 parameter sets I tested [can be found in the repo](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/extraction_parameters.csv).
+Since this project involves a lot of parameters, I decided to implement a automatic parameter testing.
 
-In the end I settled for the follwing parameter set.
+I created a spreadsheet with each row containing a parameter set I wanted to test. I saved the spreadsheet as ```.csv``` and used [pandas](http://pandas.pydata.org/) and a few lines of code to iterate though it row by row. For each row the script feed all parameters to feature extraction and fitting. I inserted different performance indicators like accuracy and predict time back into the spreadsheer again using pandas. This allowed for an large number of parameters to be tested over night. The spreadsheet containing all 50 parameter sets I tested [can be found in the repo](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/extraction_parameters.csv).
+
+```python
+# Note: shortend
+parameter_file = "extraction_parameters.csv"
+para_pd = pd.read_table(parameter_file, sep=';')
+
+for index, para_row in para_pd.iterrows():
+
+    # Skip rows that are alredy calculated
+    if para_row['accuracy'] != 0:
+        continue
+
+    kernel = para_row['kernel']
+    color_space = para_row['color_space']
+    # shortend!
+
+    car_features = extract_features_from_dataset(cars)  # shortend
+    notcar_features = extract_features_from_dataset(notcars)  # shortend
+
+    para_pd.loc[index, 'time_to_extract_features'] = time_extract
+    para_pd.loc[index, 'time_to_extract_features_100'] = round(time_extract*100/(len(car_features)+len(notcar_features)),6)
+
+    X_scaler, X_train, X_test, y_train, y_test = create_and_scale_trainset(car_features, notcar_features)
+
+    if pca:
+        pca, X_train_pca, X_test_pca = fit_PCA(X_train, X_test, y_train, y_test, n_components=pca_num)
+        svc, accuracy, time_fit, time_prediction = fit_SVM(X_train_pca, X_test_pca, y_train, y_test, kernel=kernel, C=C)
+        para_pd.loc[index, 'features_vector_length'] = int(len(X_train_pca[0]))
+    else:
+        svc, accuracy, time_fit, time_prediction = fit_SVM(X_train, X_test, y_train, y_test, kernel=kernel, C=C)
+        para_pd.loc[index, 'features_vector_length'] = int(len(X_train[0]))
+
+    para_pd.loc[index, 'training_time'] = time_fit
+    para_pd.loc[index, 'accuracy'] = accuracy   
+    para_pd.loc[index, 'prediction_time_100'] = time_prediction
+
+    # save pandas file back to hard drive
+    para_pd.to_csv(parameter_file, sep=';', index=False)
+```
+
+
+In the end I settled for the following parameter set.
+
 | Color Space | HOG           | Color   | Histogram | Classifier | PCA   | Accuracy | Prediction time for 100 samples |
 |-------------|---------------|---------|-----------|------------|-------|----------|---------------------------------|
-| YCrCb       | 16,16,2,'ALL' | (16,16) | 16        | rbf, C=10  | n=150 | 0.9969   | 0.0249s                         |
+| YCrCb       | 16,16,2,'ALL' | (16,16) | 16        | rbf, C=10  | n=150 | **0.9975**   | **0.0249s**                         |
+
+I was supprised to see the best performance with a HOG parameter ```pix_per_cell = 16``` because this results in a HOG grid of just 4x4. See example below. A more complex HOG feature extraction rather strangly proved to be worse performing and slower.
+
+![HOG16](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/Hog16.png)
+
 
 
 ## Vehicle Detection Pipeline
-The detection pipeline uses the classifier from part 1 to detect vehicle in a image and later video.
+The detection pipeline scans over an image and uses the trained classifier, normalizer and PCA from part 1 to detect vehicle in an image and later video.
 
-the pipeline consists of the following steps.
+The pipeline consists of the following steps.
 1. Calculate HOG feature over entire image and subsample with three different window sizes. Extract color and histogram features as well.
 2. Normalize and apply PCA to combined feature vector.
 3. Use classifier from part 1 to predict if there is a car in the subsample.
 4. False positive rejection
 5. Annotate found vehicle in input image by drawing a bounding box.
 
-##### 1. Calculate HOG feature over entire image and subsample
+#### 1. Calculate HOG feature over entire image and subsample
 For the first step I adopted a code chunk from the lesson material. It applies a smart trick to the extraction of HOG features. Instead of adjusting the size of the sliding window and then rescaling the subsample back to 64x64 pixel to calculate HOG features, the function is resizing the entire image and calculating HOG features over the entire image. So instead of a 96x96 sliding window that we would have to rescale to 64x64 to calculate HOG features, we scale the entire imge down by a factor of 1.5 and subsample with a window size of 64x64.
 
 Color and historam features are extracted from the same 64x64 window in this step.
-
-The function ```find_cars() ``` does the following:
-1. Scale image to desired size
-2. Calculate HOG features over whole image
-3. Subsample in windows of 64x64 pixel
-4. Calculate color and histogram features on same subsample
-5. Combine feature vectors
-6. Normalize and apply PCA
-7. Predict using previously trained classifier
-8. Return coordinates of subsamples with predicted cars
 
 ```python
 def find_cars(img, ystart, ystop, scale, svc, pca, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins):
@@ -239,10 +277,10 @@ def find_cars(img, ystart, ystop, scale, svc, pca, X_scaler, orient, pix_per_cel
  ```
 
 
-##### 2. Normalize and apply PCA to combined feature vector
-After combining the feature vectors, they are normalized using the scaler from part 1 and then I applied the PCA from part 1 to reduce the number of features to 150.
+#### 2. Normalize and apply PCA to combined feature vector
+Every subsample feature vector is then normalized using the same scaler as for training in part 1. After that the PCA from part 1 is applied to, again, reduce the number of features to 150.
 
- ```python
+```python
            test = np.hstack((spatial_features, hist_features, hog_features))
            # Scale features and make a prediction
            test_features = X_scaler.transform(np.hstack((spatial_features, hist_features, hog_features)).reshape(1, -1))
@@ -250,9 +288,9 @@ After combining the feature vectors, they are normalized using the scaler from p
 ```
 
 
-##### 3. Use classifier from part 1 to predict if there is a car in the subsample
-Finally the
- ```python
+#### 3. Use classifier from part 1 to predict if there is a car in the subsample
+Finally the classifier I trained in part 1 is used to predict whether there is a car in a subsample or not. For every positive prediction the coordinates of the subsample are saved and appended to ```bbox_list```.
+```python
 
             test_prediction = svc.predict(test_features_pca)
 
@@ -264,11 +302,15 @@ Finally the
 
     return bbox_list
 ```
-In the pipeline  ```find_cars() ``` was applied with the scales values 1, 1.5 and 2 to use search windows of 64x64, 96x96 and 128x128. The positive prediction were combined.
+The pipeline applies ```find_cars() ``` applies three times with scales values of 1, 1.5 and 2 to search the image in windows of 64x64, 96x96 and 128x128. The positive prediction are combined.
 
-##### 4. False positive rejection
-Next I implemented a class that kept a history of the last 30 frames to only draw bounding boxes of the detection was viable over a few frames. This was needed to rejected false positives in the video stream.
-I implemented it using the concept of heatmap and thresholding. To smooth things out, the sum over the last 30 heatmaps was calculated and thresholded to 30.
+
+
+#### 4. False positive rejection
+Next I implemented a class that kept a history of the last 30 frames to only draw bounding boxes when the detection was viable over a few frames. This was done to rejected false positives in the video stream.
+
+I implemented it using the concept of heatmap and thresholding. To smooth things out, the sum over the last 30 heatmaps is calculated and thresholded to 30.
+
 ```python
 class Heatmap():
     def __init__(self, history_depth=10, threshold=2):
@@ -310,7 +352,7 @@ class Heatmap():
 ![heatmap](https://github.com/stefancyliax/CarND-Vehicle-Detection/raw/master/output_images/heatmap.png)
 
 
-##### 5. Annotate found vehicle in input image by drawing a bounding box
+#### 5. Annotate found vehicle in input image by drawing a bounding box
 
 To figure out how many cars the heatmap shows, the function [scipy.ndimage.measurements.label](https://docs.scipy.org/doc/scipy-0.16.0/reference/generated/scipy.ndimage.measurements.label.html) was used. The output of ```label()``` is then passed to a function that draws bounding boxes on the input image.
 
@@ -345,38 +387,11 @@ def draw_labeled_bboxes(img, labels, color=(0,1,0)):
 
 
 
-
-
-
 # Discussion
-project with many parameters and a long computation time that prolonged the interation cycles to
+This was a interessting project were I could resort to lessons from the Udacity course [Intro to Machine Learning](https://www.udacity.com/course/intro-to-machine-learning--ud120) I did a while back. In the end the pipeline was able to reliably detect the vehicles in the project video and annotate them. The false positive rejection proved to be effective as well. One downside of the approach using computer vision and machine learning is that it rather computational expensive. The processing of the whole video took about 15 minutes which translates to 1.3 fps. Obivously way to slow for a real world application.
 
+#### Use class for every vehicle to do proper tracking on screen
+I am pretty happy with the machine learning part but the vehicle detection pipeline leaves room for improvement. One possible improvment is the use of a class to properly track every detected vehicle.
 
-
-Creating a great writeup:
----
-A great writeup should include the rubric points as well as your description of how you addressed each point.  You should include a detailed description of the code used in each step (with line-number references and code snippets where necessary), and links to other supporting documents or external references.  You should include images in your writeup to demonstrate how your code works with examples.  
-
-All that said, please be concise!  We're not looking for you to write a book here, just a brief description of how you passed each rubric point, and references to the relevant code :).
-
-You can submit your writeup in markdown or use another method and submit a pdf instead.
-
-The Project
----
-
-The goals / steps of this project are the following:
-
-* Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier
-* Optionally, you can also apply a color transform and append binned color features, as well as histograms of color, to your HOG feature vector.
-* Note: for those first two steps don't forget to normalize your features and randomize a selection for training and testing.
-* Implement a sliding-window technique and use your trained classifier to search for vehicles in images.
-* Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
-* Estimate a bounding box for vehicles detected.
-
-Here are links to the labeled data for [vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip) examples to train your classifier.  These example images come from a combination of the [GTI vehicle image database](http://www.gti.ssr.upm.es/data/Vehicle_database.html), the [KITTI vision benchmark suite](http://www.cvlibs.net/datasets/kitti/), and examples extracted from the project video itself.   You are welcome and encouraged to take advantage of the recently released [Udacity labeled dataset](https://github.com/udacity/self-driving-car/tree/master/annotations) to augment your training data.  
-
-Some example images for testing your pipeline on single frames are located in the `test_images` folder.  To help the reviewer examine your work, please save examples of the output from each stage of your pipeline in the folder called `ouput_images`, and include them in your writeup for the project by describing what each image shows.    The video called `project_video.mp4` is the video your pipeline should work well on.  
-
-**As an optional challenge** Once you have a working pipeline for vehicle detection, add in your lane-finding algorithm from the last project to do simultaneous lane-finding and vehicle detection!
-
-**If you're feeling ambitious** (also totally optional though), don't stop there!  We encourage you to go out and take video of your own, and show us how you would implement this project on a new video!
+#### Use of NN or CNN
+It would be interessting to benchmark a NN as classifier against the Support Vector Machine, especially regarding computation speed. Also a benchmark againt a modern approch like Yolo or other object detection CNN would be very interessting.
